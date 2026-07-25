@@ -1,0 +1,14 @@
+streamlit
+streamlit-searchbox
+yfinance
+pandas
+numpy
+ta
+requests
+textblob
+groq
+
+# FastAPI service (api.py)
+fastapi
+uvicorn[standard]
+plotly
