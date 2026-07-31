@@ -1,11 +1,38 @@
 # Portfolio Intelligence
 
-A Streamlit app that analyzes a stock portfolio: returns, risk metrics,
-technical indicators, chart patterns, news sentiment, and an AI coach that
-explains it all in plain English.
+A Python app that helps beginners **understand a stock portfolio they already have** — returns, risk, concentration, momentum in plain English, news sentiment, and an optional AI coach.
 
-Results are saved to a local SQLite database, and a small read-only FastAPI
-service exposes them over HTTP.
+Built with **Streamlit** (UI), **SQLite** (persistence), and **FastAPI** (read-only API over the same database).
+
+> Educational tool only. Not financial advice. Does **not** pick stocks or promise the best day to invest.
+
+---
+
+## What it does
+
+| Area | Features |
+| --- | --- |
+| **Portfolio** | Holdings input, period returns, P&L vs cost basis, performance chart, Sharpe & volatility |
+| **Beginner guidance** | Concentration check, portfolio trend context, DCA-style notes for adding money |
+| **Indicators** | RSI, MACD, Bollinger %B, ticker Sharpe — explained in plain English (glossary in-app) |
+| **News** | Optional NewsAPI headlines + sentiment; earnings/valuation from Yahoo Finance |
+| **AI Insights** | Optional Groq-powered briefing + chat grounded in the latest analysis |
+| **Data layer** | SQLite stores holdings & metrics; fresh metrics (under 1 day) are reused |
+| **API** | FastAPI exposes holdings and metrics as JSON for other tools |
+
+**Not a TradingView clone.** Charts are optional visual proof under the plain-English read.
+
+---
+
+## Stack
+
+- Python, Streamlit, Plotly
+- yfinance, `ta`, pandas, numpy
+- SQLite (`database.py` → `data.db`)
+- FastAPI + Uvicorn
+- Optional: NewsAPI, Groq (LLM)
+
+---
 
 ## Setup
 
@@ -14,22 +41,32 @@ pip install -r requirements.txt
 python -m textblob.download_corpora
 ```
 
-Create `.streamlit/secrets.toml` with your API keys (this file is gitignored):
+### API keys (optional)
 
-```toml
-NEWS_API_KEY = "your-newsapi-key"   # optional — https://newsapi.org
-GROQ_API_KEY = "your-groq-key"      # optional — https://console.groq.com/keys
+Copy the example secrets file and add your own keys:
+
+```bash
+cp .streamlit/secrets.toml.example .streamlit/secrets.toml
 ```
 
-Both keys are optional. Without them, the app still does all price, risk, and
-pattern analysis; it just skips news sentiment and the AI coach.
+```toml
+NEWS_API_KEY = "your-newsapi-key"   # https://newsapi.org
+GROQ_API_KEY = "your-groq-key"      # https://console.groq.com/keys
+```
 
-## Running the two services
+| Without keys | Still works |
+| --- | --- |
+| Prices, returns, risk, indicators, beginner guidance | Yes |
+| News sentiment | Needs `NEWS_API_KEY` |
+| AI coach | Needs `GROQ_API_KEY` |
 
-They are independent processes and can run at the same time. `data.db` is
-created automatically on first launch.
+**`.streamlit/secrets.toml` is gitignored** — your keys never get committed.
 
-**Streamlit app** — the UI, and the only thing that writes to the database:
+---
+
+## Run
+
+**Streamlit UI** (writes to the database):
 
 ```bash
 streamlit run app.py
@@ -37,67 +74,64 @@ streamlit run app.py
 
 Opens at http://localhost:8501
 
-**FastAPI service** — read-only access to whatever the app has saved:
+**FastAPI** (read-only; same `data.db`):
 
 ```bash
 uvicorn api:app --reload
 ```
 
-Opens at http://localhost:8000, with interactive docs at
-http://localhost:8000/docs
+Opens at http://localhost:8000 · docs at http://localhost:8000/docs
+
+Run **Analyze Portfolio** in the UI at least once before calling the API.
+
+---
 
 ## API endpoints
 
-All endpoints are read-only `GET` requests that return JSON. The API never
-fetches market data or recalculates anything — it only reads rows the
-Streamlit app has already written, so run **Analyze Portfolio** in the app at
-least once before calling it.
-
 | Endpoint | Returns |
 | --- | --- |
-| `/portfolio/holdings` | Every saved holding: `ticker`, `shares`, `buy_price`, `date_added`. |
-| `/portfolio/metrics` | The most recent metrics row per holding: `returns`, `volatility`, `sharpe_ratio`, `rsi`, `macd`, plus the `date`/`period` they cover and an `is_stale` flag. Accepts an optional `?period=` filter (`1mo`, `3mo`, `6mo`, `1y`, `ytd`, `2y`). |
-| `/stock/{ticker}/indicators` | `rsi`, `macd`, and `sharpe_ratio` for one ticker, with `period`, `date`, `calculated_at`, and `is_stale`. Returns `404` if that ticker has never been analyzed. Also accepts `?period=`. |
-
-Example:
+| `GET /portfolio/holdings` | Saved holdings (`ticker`, `shares`, `buy_price`, `date_added`) |
+| `GET /portfolio/metrics` | Latest metrics per holding (`returns`, `volatility`, `sharpe_ratio`, `rsi`, `macd`, `is_stale`). Optional `?period=` |
+| `GET /stock/{ticker}/indicators` | RSI, MACD, Sharpe for one ticker. `404` if never analyzed |
 
 ```bash
 curl http://localhost:8000/portfolio/metrics
 curl http://localhost:8000/stock/AAPL/indicators?period=6mo
 ```
 
-## How data is stored
+---
 
-`database.py` owns a local SQLite file, `data.db`, with two tables:
+## Project layout
 
-- **`holdings`** — `id`, `ticker`, `shares`, `buy_price`, `date_added`. Kept in
-  sync with the holdings form each time you analyze, so your portfolio is
-  still there after a restart.
-- **`portfolio_metrics`** — `id`, `ticker`, `date`, `period`, `returns`,
-  `volatility`, `sharpe_ratio`, `rsi`, `macd`, `calculated_at`. One row per
-  ticker per trading date per time window; re-analyzing overwrites the
-  matching row instead of appending duplicates.
+```
+app.py          # Streamlit UI + analysis
+theme.py        # Fintech styling (CSS, Plotly charts, metric cards)
+database.py     # SQLite schema + read/write helpers
+api.py          # FastAPI read-only service
+data.db         # Local DB (gitignored; created on first run)
+.streamlit/
+  config.toml           # Theme
+  secrets.toml.example  # Template for keys
+  secrets.toml          # Your keys (gitignored)
+```
 
-`period` is stored alongside each metrics row because indicators are only
-meaningful for the window they were computed over — a 1-month RSI should never
-be reused for a 2-year view.
+### SQLite tables
 
-### When cached values get reused
+- **`holdings`** — ticker, shares, buy price, date added
+- **`portfolio_metrics`** — returns, volatility, Sharpe, RSI, MACD, period, calculated_at
 
-On startup the app loads your saved holdings and shows a **Last saved
-snapshot** table straight from the database, with no network calls.
+Metrics older than a day (for the same period window) are recomputed on Analyze. Tick **Recalculate from scratch** to force a refresh.
 
-When you hit **Analyze Portfolio**, any ticker whose saved metrics are less
-than a day old (for that same time window) reuses the stored RSI, MACD,
-volatility, and Sharpe instead of recomputing them. Stale or missing rows are
-recalculated and written back. Tick **Recalculate from scratch** to bypass this.
+---
 
-Price history itself is not stored in the database; it is fetched from Yahoo
-Finance and cached in memory for an hour, since the charts and pattern
-detection need the full series.
+## Design notes
 
-`data.db` is gitignored — it is local state, not source code.
+- **Audience:** beginners monitoring a portfolio — not market timing or stock picking
+- **Green / red:** gains vs losses and constructive vs caution signals only
+- **Navy / white:** primary chrome (headers, buttons, tabs)
+
+---
 
 ## Disclaimer
 
-Educational tool only. Nothing here is financial advice.
+This project is for learning and demonstration. Nothing here is investment advice.
