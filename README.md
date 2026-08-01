@@ -1,4 +1,4 @@
-# AI-powered portfolio intelligence platform
+# AI-powered Portfolio Intelligence Platform
 
 This project is a Python app that helps beginners track, analyze, and understand their current stock holdings in plain English. Rather than just having technical indicators, this platform combines real-time market data, computed portfolio metrics with explanations, and an AI chat layer for users to ask any questions about their own portfolio holdings. 
 
