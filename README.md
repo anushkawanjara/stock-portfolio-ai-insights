@@ -9,6 +9,10 @@ Built with **Streamlit** (UI), **SQLite** (persistence), and **FastAPI** (read-o
 > Educational tool only. Not financial advice. Does **not** pick stocks or promise the best day to invest.
 
 ---
+## Video Demo
+https://www.loom.com/share/fbb2bde61035478083af1c5615928686
+
+---
 
 ## What it does
 
