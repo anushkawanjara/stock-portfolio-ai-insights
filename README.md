@@ -1,6 +1,8 @@
-# Portfolio Intelligence
+# AI-powered portfolio intelligence platform
 
-A Python app that helps beginners **understand a stock portfolio they already have** — returns, risk, concentration, momentum in plain English, news sentiment, and an optional AI coach.
+This project is a Python app that helps beginners track, analyze, and understand their current stock holdings in plain English. Rather than just having technical indicators, this platform combines real-time market data, computed portfolio metrics with explanations, and an AI chat layer for users to ask any questions about their own portfolio holdings. 
+
+The platform pulls live data from Yahoo Finance, a News API, and Groq which is an AI platform, calculates portfolio-level metrics and technical indicators, and adds results to a local database.
 
 Built with **Streamlit** (UI), **SQLite** (persistence), and **FastAPI** (read-only API over the same database).
 
@@ -14,7 +16,7 @@ Built with **Streamlit** (UI), **SQLite** (persistence), and **FastAPI** (read-o
 | --- | --- |
 | **Portfolio** | Holdings input, period returns, P&L vs cost basis, performance chart, Sharpe & volatility |
 | **Beginner guidance** | Concentration check, portfolio trend context, DCA-style notes for adding money |
-| **Indicators** | RSI, MACD, Bollinger %B, ticker Sharpe — explained in plain English (glossary in-app) |
+| **Indicators** | RSI, MACD, Bollinger %B, ticker Sharpe — explained in plain English |
 | **News** | Optional NewsAPI headlines + sentiment; earnings/valuation from Yahoo Finance |
 | **AI Insights** | Optional Groq-powered briefing + chat grounded in the latest analysis |
 | **Data layer** | SQLite stores holdings & metrics; fresh metrics (under 1 day) are reused |
@@ -34,7 +36,7 @@ Built with **Streamlit** (UI), **SQLite** (persistence), and **FastAPI** (read-o
 
 ---
 
-## Setup
+## Detailed Setup Guide
 
 ```bash
 pip install -r requirements.txt
@@ -121,14 +123,6 @@ data.db         # Local DB (gitignored; created on first run)
 - **`portfolio_metrics`** — returns, volatility, Sharpe, RSI, MACD, period, calculated_at
 
 Metrics older than a day (for the same period window) are recomputed on Analyze. Tick **Recalculate from scratch** to force a refresh.
-
----
-
-## Design notes
-
-- **Audience:** beginners monitoring a portfolio — not market timing or stock picking
-- **Green / red:** gains vs losses and constructive vs caution signals only
-- **Navy / white:** primary chrome (headers, buttons, tabs)
 
 ---
 
